@@ -3,6 +3,25 @@ import pandas as pd
 import io
 from typing import Optional
 
+# Check for required dependencies
+try:
+    import openpyxl
+except ImportError:
+    st.error("""
+    ❌ **Missing Dependency Error**
+    
+    The `openpyxl` library is required to read Excel files but is not installed.
+    
+    **To fix this issue:**
+    1. Stop the Streamlit app (Ctrl+C)
+    2. Run: `pip install openpyxl`
+    3. Restart the app: `streamlit run hrt_filter_app.py`
+    
+    **Alternative:** Install all dependencies at once:
+    `pip install streamlit pandas openpyxl xlrd`
+    """)
+    st.stop()
+
 # Page configuration
 st.set_page_config(
     page_title="HRT Major Filter App",
@@ -54,12 +73,26 @@ st.markdown("""
 def load_excel_file(uploaded_file, sheet_name: str = "Sheet1") -> Optional[pd.DataFrame]:
     """Load Excel file and return DataFrame with cleaned column names."""
     try:
-        df = pd.read_excel(uploaded_file, sheet_name=sheet_name)
+        df = pd.read_excel(uploaded_file, sheet_name=sheet_name, engine='openpyxl')
         # Clean and standardize column names
         df.columns = df.columns.str.strip().str.lower()
         return df
+    except ImportError as e:
+        st.error("""
+        ❌ **Missing Dependency Error**
+        
+        Please install openpyxl: `pip install openpyxl`
+        """)
+        return None
+    except FileNotFoundError:
+        st.error(f"❌ Sheet '{sheet_name}' not found in the Excel file. Please check the sheet name.")
+        return None
     except Exception as e:
-        st.error(f"Error loading file: {str(e)}")
+        st.error(f"❌ Error loading file: {str(e)}")
+        st.info("💡 **Troubleshooting tips:**")
+        st.write("- Make sure the file is a valid Excel file (.xlsx or .xls)")
+        st.write("- Check that the sheet name is correct")
+        st.write("- Ensure the file is not corrupted or password-protected")
         return None
 
 def validate_dataframe(df: pd.DataFrame, file_name: str, required_column: str) -> bool:
