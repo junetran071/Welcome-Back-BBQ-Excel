@@ -114,6 +114,50 @@ def create_download_link(df: pd.DataFrame, filename: str) -> bytes:
         df.to_excel(writer, index=False, sheet_name='Non_HRT_Attendees')
     return output.getvalue()
 
+def get_sample_data():
+    """Return sample data for demonstration."""
+    # Sample BBQ Attendees data
+    bbq_sample = pd.DataFrame({
+        'Name': [
+            'Alice Johnson', 'Bob Smith', 'Newman Adam', 'Julia Garcia', 'Taylor Rose',
+            'George Nguyen', 'Zara Khan', 'Wendy Park', 'Charlie Kim', 'Leo Tran'
+        ],
+        'cpp.edu email': [
+            'alice@cpp.edu', 'bob@cpp.edu', 'newman@cpp.edu', 'julia@cpp.edu', 'taylor@cpp.edu',
+            'george@cpp.edu', 'zara@cpp.edu', 'wendy@cpp.edu', 'charlie@cpp.edu', 'leo@cpp.edu'
+        ],
+        'Bronco ID': [
+            '606802', '318460', '466783', '536437', '871586',
+            '394563', '372446', '600938', '206588', '244761'
+        ]
+    })
+    
+    # Sample HRT Majors data
+    hrt_sample = pd.DataFrame({
+        'Last name': [
+            'Johnson', 'Smith', 'Kim', 'Lopez', 'Wong',
+            'Patel', 'Nguyen', 'Brown', 'Lee', 'Garcia'
+        ],
+        'First name': [
+            'Alice', 'Bob', 'Charlie', 'Diana', 'Ethan',
+            'Fatima', 'George', 'Hannah', 'Ian', 'Julia'
+        ],
+        'Email': [
+            'alice@cpp.edu', 'bob@cpp.edu', 'charlie@cpp.edu', 'diana@cpp.edu', 'ethan@cpp.edu',
+            'fatima@cpp.edu', 'george@cpp.edu', 'hannah@cpp.edu', 'ian@cpp.edu', 'julia@cpp.edu'
+        ],
+        'Bronco ID': [
+            '606802', '318460', '206588', '711803', '432778',
+            '891189', '394563', '473049', '667777', '536437'
+        ]
+    })
+    
+    # Clean column names to match the app's processing
+    bbq_sample.columns = bbq_sample.columns.str.strip().str.lower()
+    hrt_sample.columns = hrt_sample.columns.str.strip().str.lower()
+    
+    return hrt_sample, bbq_sample
+
 # Main App
 def main():
     # Header
@@ -135,6 +179,13 @@ def main():
     with st.sidebar:
         st.markdown('<h2 class="section-header">⚙️ Configuration</h2>', unsafe_allow_html=True)
         
+        # Demo mode toggle
+        demo_mode = st.checkbox(
+            "🎯 Use Demo Data", 
+            value=False,
+            help="Toggle this to use built-in sample data for demonstration"
+        )
+        
         # Column name configuration
         st.subheader("Column Settings")
         comparison_column = st.text_input(
@@ -148,61 +199,101 @@ def main():
         hrt_sheet = st.text_input("HRT Majors Sheet Name", value="Sheet1")
         bbq_sheet = st.text_input("BBQ Attendees Sheet Name", value="Sheet1")
         
-        st.markdown("""
-        <div class="info-box">
-            <h5>💡 Tips:</h5>
-            <ul>
-                <li>Column names are automatically cleaned (spaces trimmed, converted to lowercase)</li>
-                <li>Make sure both files have the same column name for comparison</li>
-                <li>Default sheet name is "Sheet1"</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        if demo_mode:
+            st.markdown("""
+            <div class="info-box">
+                <h5>🎯 Demo Mode Active</h5>
+                <p>Using built-in sample data:</p>
+                <ul>
+                    <li><strong>10 BBQ attendees</strong></li>
+                    <li><strong>10 HRT majors</strong></li>
+                    <li><strong>Expected result:</strong> 5 non-HRT attendees</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="info-box">
+                <h5>💡 Tips:</h5>
+                <ul>
+                    <li>Column names are automatically cleaned (spaces trimmed, converted to lowercase)</li>
+                    <li>Make sure both files have the same column name for comparison</li>
+                    <li>Default sheet name is "Sheet1"</li>
+                    <li>Try Demo Mode to see how the app works!</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
 
     # Main content area
     col1, col2 = st.columns(2)
     
-    with col1:
-        st.markdown('<h2 class="section-header">📁 Upload HRT Majors File</h2>', unsafe_allow_html=True)
-        hrt_file = st.file_uploader(
-            "Choose HRT Majors Excel file",
-            type=['xlsx', 'xls'],
-            key="hrt_file",
-            help="Upload the Excel file containing HRT majors data"
-        )
+    # Initialize dataframes
+    hrt_df = None
+    bbq_df = None
+    
+    if demo_mode:
+        # Use sample data
+        hrt_df, bbq_df = get_sample_data()
         
-        if hrt_file is not None:
-            with st.spinner("Loading HRT Majors file..."):
-                hrt_df = load_excel_file(hrt_file, hrt_sheet)
+        with col1:
+            st.markdown('<h2 class="section-header">📁 Demo: HRT Majors Data</h2>', unsafe_allow_html=True)
+            st.success(f"✅ Using demo data: {len(hrt_df)} HRT majors")
             
-            if hrt_df is not None:
-                st.success(f"✅ Loaded {len(hrt_df)} HRT majors")
-                
-                # Show preview
-                with st.expander("Preview HRT Majors Data"):
-                    st.dataframe(hrt_df.head(), use_container_width=True)
-                    st.write(f"**Columns:** {list(hrt_df.columns)}")
+            with st.expander("Preview Demo HRT Majors Data", expanded=True):
+                st.dataframe(hrt_df, use_container_width=True)
+                st.write(f"**Columns:** {list(hrt_df.columns)}")
 
-    with col2:
-        st.markdown('<h2 class="section-header">📁 Upload BBQ Attendees File</h2>', unsafe_allow_html=True)
-        bbq_file = st.file_uploader(
-            "Choose BBQ Attendees Excel file",
-            type=['xlsx', 'xls'],
-            key="bbq_file",
-            help="Upload the Excel file containing BBQ attendees data"
-        )
-        
-        if bbq_file is not None:
-            with st.spinner("Loading BBQ Attendees file..."):
-                bbq_df = load_excel_file(bbq_file, bbq_sheet)
+        with col2:
+            st.markdown('<h2 class="section-header">📁 Demo: BBQ Attendees Data</h2>', unsafe_allow_html=True)
+            st.success(f"✅ Using demo data: {len(bbq_df)} BBQ attendees")
             
-            if bbq_df is not None:
-                st.success(f"✅ Loaded {len(bbq_df)} BBQ attendees")
+            with st.expander("Preview Demo BBQ Attendees Data", expanded=True):
+                st.dataframe(bbq_df, use_container_width=True)
+                st.write(f"**Columns:** {list(bbq_df.columns)}")
+    
+    else:
+        # File upload mode
+        with col1:
+            st.markdown('<h2 class="section-header">📁 Upload HRT Majors File</h2>', unsafe_allow_html=True)
+            hrt_file = st.file_uploader(
+                "Choose HRT Majors Excel file",
+                type=['xlsx', 'xls'],
+                key="hrt_file",
+                help="Upload the Excel file containing HRT majors data"
+            )
+            
+            if hrt_file is not None:
+                with st.spinner("Loading HRT Majors file..."):
+                    hrt_df = load_excel_file(hrt_file, hrt_sheet)
                 
-                # Show preview
-                with st.expander("Preview BBQ Attendees Data"):
-                    st.dataframe(bbq_df.head(), use_container_width=True)
-                    st.write(f"**Columns:** {list(bbq_df.columns)}")
+                if hrt_df is not None:
+                    st.success(f"✅ Loaded {len(hrt_df)} HRT majors")
+                    
+                    # Show preview
+                    with st.expander("Preview HRT Majors Data"):
+                        st.dataframe(hrt_df.head(), use_container_width=True)
+                        st.write(f"**Columns:** {list(hrt_df.columns)}")
+
+        with col2:
+            st.markdown('<h2 class="section-header">📁 Upload BBQ Attendees File</h2>', unsafe_allow_html=True)
+            bbq_file = st.file_uploader(
+                "Choose BBQ Attendees Excel file",
+                type=['xlsx', 'xls'],
+                key="bbq_file",
+                help="Upload the Excel file containing BBQ attendees data"
+            )
+            
+            if bbq_file is not None:
+                with st.spinner("Loading BBQ Attendees file..."):
+                    bbq_df = load_excel_file(bbq_file, bbq_sheet)
+                
+                if bbq_df is not None:
+                    st.success(f"✅ Loaded {len(bbq_df)} BBQ attendees")
+                    
+                    # Show preview
+                    with st.expander("Preview BBQ Attendees Data"):
+                        st.dataframe(bbq_df.head(), use_container_width=True)
+                        st.write(f"**Columns:** {list(bbq_df.columns)}")
 
     # Processing section
     if 'hrt_df' in locals() and 'bbq_df' in locals() and hrt_df is not None and bbq_df is not None:
